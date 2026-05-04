@@ -142,7 +142,6 @@ export function CSVUploader({ onParsed }: Props) {
         <p className="text-slate-600 text-xs">
           Required columns:&nbsp;
           <code className="text-slate-500">wallet, amount, token</code>
-          &nbsp;· Optional: <code className="text-slate-500">label</code>
         </p>
       </div>
 

@@ -48,9 +48,6 @@ export function PayrollPreviewTable({ entries, onChange }: Props) {
                 Wallet
               </th>
               <th className="text-left px-5 py-3 text-slate-500 font-medium text-xs uppercase tracking-wider">
-                Label
-              </th>
-              <th className="text-left px-5 py-3 text-slate-500 font-medium text-xs uppercase tracking-wider">
                 Token
               </th>
               <th className="text-right px-5 py-3 text-slate-500 font-medium text-xs uppercase tracking-wider">
@@ -81,19 +78,6 @@ export function PayrollPreviewTable({ entries, onChange }: Props) {
                     >
                       {truncateWallet(entry.wallet)}
                     </span>
-                  </td>
-
-                  {/* Label */}
-                  <td className="px-5 py-3.5">
-                    <input
-                      type="text"
-                      value={entry.label ?? ""}
-                      onChange={(e) => updateEntry(entry.id, { label: e.target.value || undefined })}
-                      placeholder="—"
-                      disabled={entry.status !== "pending"}
-                      className="bg-transparent text-slate-300 text-sm placeholder-slate-600 outline-none w-full max-w-35 disabled:opacity-50"
-                      aria-label={`Label for ${truncateWallet(entry.wallet)}`}
-                    />
                   </td>
 
                   {/* Token */}

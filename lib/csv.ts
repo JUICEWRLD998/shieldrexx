@@ -44,8 +44,6 @@ export function parseCSV(file: File): Promise<ParseResult> {
           const wallet = (row["wallet"] ?? "").trim();
           const rawAmount = (row["amount"] ?? "").trim();
           const rawToken = (row["token"] ?? "").trim();
-          const label = (row["label"] ?? "").trim() || undefined;
-
           if (!wallet) {
             errors.push(`Row ${rowNum}: missing wallet address.`);
             return;
@@ -71,7 +69,7 @@ export function parseCSV(file: File): Promise<ParseResult> {
             return;
           }
 
-          entries.push({ id: uuidv4(), wallet, amount, token, label, status: "pending" });
+          entries.push({ id: uuidv4(), wallet, amount, token, status: "pending" });
         });
 
         resolve({ entries, errors });
