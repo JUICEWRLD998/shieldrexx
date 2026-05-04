@@ -1,26 +1,162 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Base ─────────────────────────────────────────────── */
+:root {
+  --brand:      #7c3aed;
+  --brand-mid:  #6d28d9;
+  --brand-lite: #a78bfa;
+  --brand-pale: #c4b5fd;
+  --brand-glow: rgba(124, 58, 237, 0.35);
+  --bg-deep:    #06091a;
+  --border-dim: rgba(124, 58, 237, 0.18);
+  --surface:    rgba(13, 18, 48, 0.7);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+html, body {
+  background-color: var(--bg-deep);
+  color: #f1f5f9;
+  scroll-behavior: smooth;
+}
+
+/* ── Gradient text ────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 45%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Animated background grid ─────────────────────────── */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(124, 58, 237, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 58, 237, 0.045) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* ── Floating orbs ────────────────────────────────────── */
+@keyframes orb-drift {
+  0%, 100% { transform: translateY(0px) scale(1);    opacity: 0.5; }
+  50%       { transform: translateY(-24px) scale(1.06); opacity: 0.8; }
+}
+.orb   { animation: orb-drift 9s  ease-in-out infinite; }
+.orb-2 { animation: orb-drift 12s ease-in-out infinite; animation-delay: -5s; }
+
+/* ── Glass card ───────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border-dim);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+}
+.card:hover {
+  border-color: rgba(124, 58, 237, 0.45);
+  box-shadow:
+    0 0 48px rgba(124, 58, 237, 0.1),
+    inset 0 0 48px rgba(124, 58, 237, 0.03);
+  transform: translateY(-2px);
+}
+
+/* ── Buttons ──────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(135deg, var(--brand-mid), var(--brand));
+  box-shadow: 0 0 28px var(--brand-glow);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 12px 28px;
+  border: none;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.15s;
+  text-decoration: none;
+  font-size: 1rem;
+}
+.btn-primary:hover {
+  box-shadow: 0 0 52px var(--brand-glow);
+  transform: translateY(-1px);
+}
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  color: #c4b5fd;
+  font-weight: 500;
+  border-radius: 10px;
+  padding: 12px 28px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  text-decoration: none;
+  font-size: 1rem;
+}
+.btn-secondary:hover {
+  background: rgba(124, 58, 237, 0.1);
+  border-color: rgba(124, 58, 237, 0.55);
+  transform: translateY(-1px);
+}
+
+/* ── Step / mono label ────────────────────────────────── */
+.step-num {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--brand-lite);
+  font-family: var(--font-geist-mono, monospace);
+}
+
+/* ── Badge pill ───────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(124, 58, 237, 0.28);
+  color: #c4b5fd;
+  border-radius: 100px;
+  padding: 6px 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* ── Divider ──────────────────────────────────────────── */
+.divider-glow {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124,58,237,0.4), transparent);
+}
+
+/* ── Wallet adapter overrides ─────────────────────────── */
+.wallet-adapter-button {
+  background: linear-gradient(135deg, var(--brand-mid), var(--brand)) !important;
+  border-radius: 8px !important;
+  height: 36px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 0 16px !important;
+  transition: box-shadow 0.2s, transform 0.15s !important;
+}
+.wallet-adapter-button:hover {
+  box-shadow: 0 0 28px var(--brand-glow) !important;
+  transform: translateY(-1px) !important;
+}
+.wallet-adapter-modal-wrapper {
+  background: #0d1230 !important;
+  border: 1px solid var(--border-dim) !important;
+  border-radius: 16px !important;
+}
+.wallet-adapter-modal-title { color: #f1f5f9 !important; }
+.wallet-adapter-modal-list-item { border-radius: 10px !important; }
+.wallet-adapter-modal-list-item:hover {
+  background: rgba(124, 58, 237, 0.1) !important;
 }
