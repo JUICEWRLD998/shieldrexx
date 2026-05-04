@@ -1,23 +1,20 @@
-import { Connection } from "@solana/web3.js";
+import { Connection, PublicKey } from "@solana/web3.js";
 
 /** Minimal wallet interface — avoids dependency on @solana/wallet-adapter-react */
 export interface WalletAdapter {
   publicKey: import("@solana/web3.js").PublicKey;
   signTransaction: <T extends import("@solana/web3.js").Transaction | import("@solana/web3.js").VersionedTransaction>(tx: T) => Promise<T>;
+  /** Required by Cloak SDK for viewing-key registration auth */
+  signMessage: (message: Uint8Array) => Promise<Uint8Array>;
 }
 
-import {
-  CLOAK_PROGRAM_ID,
-  generateUtxoKeypair,
-  createUtxo,
-  createZeroUtxo,
-  transact,
-  fullWithdraw,
-  NATIVE_SOL_MINT,
-  LAMPORTS_PER_SOL,
-} from "@cloak.dev/sdk";
+// NOTE: @cloak.dev/sdk is NOT imported statically here.
+// It bundles snarkjs + ffjavascript (~15 MB of ZK circuit code) which causes
+// webpack to spend 80+ seconds compiling the page on first load.
+// Instead it is dynamically imported inside batchSend() so the chunk is
+// only loaded when the user actually clicks "Send" — not at page render.
+
 import type { AuditRecord, PayrollEntry, Token } from "@/types";
-import { PublicKey } from "@solana/web3.js";
 
 export type CloakClient = ReturnType<typeof createCloakClient>;
 
@@ -35,8 +32,6 @@ export function createCloakClient(
   if (!wallet.publicKey || !wallet.signTransaction) {
     throw new Error("Wallet not connected");
   }
-
-  const programId = CLOAK_PROGRAM_ID;
 
   /**
    * For each recipient:
@@ -57,6 +52,21 @@ export function createCloakClient(
     if (!wallet.publicKey || !wallet.signTransaction) {
       throw new Error("Wallet not connected");
     }
+
+    // Dynamically load the SDK only when the user sends — keeps snarkjs out of
+    // the initial page bundle, cutting first-compile time from ~80s to ~3s.
+    const {
+      CLOAK_PROGRAM_ID,
+      generateUtxoKeypair,
+      createUtxo,
+      createZeroUtxo,
+      transact,
+      fullWithdraw,
+      NATIVE_SOL_MINT,
+      LAMPORTS_PER_SOL,
+    } = await import("@cloak.dev/sdk");
+
+    const programId = CLOAK_PROGRAM_ID;
 
     const batchMeta: Array<{ wallet: string; amount: number; token: Token; txSignature: string }> = [];
     let lastSig = "";
@@ -84,6 +94,7 @@ export function createCloakClient(
           connection,
           programId,
           signTransaction: wallet.signTransaction,
+          signMessage: wallet.signMessage,
           depositorPublicKey: wallet.publicKey,
         }
       );
@@ -97,6 +108,7 @@ export function createCloakClient(
           connection,
           programId,
           signTransaction: wallet.signTransaction,
+          signMessage: wallet.signMessage,
           depositorPublicKey: wallet.publicKey,
           cachedMerkleTree: depositResult.merkleTree,
         }
@@ -147,3 +159,5 @@ export function createCloakClient(
 
   return { batchSend, decryptBatchWithViewingKey };
 }
+
+export type CloakClient = ReturnType<typeof createCloakClient>;

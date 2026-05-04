@@ -55,14 +55,14 @@ function StepIndicator({ current }: { current: number }) {
 }
 
 export default function DashboardPage() {
-  const { publicKey, connection, signTransaction } = usePhantom();
+  const { publicKey, connection, signTransaction, signMessage } = usePhantom();
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [entries, setEntries] = useState<PayrollEntry[]>([]);
 
   // Build a wallet adapter shape from Phantom context
   const wallet =
-    publicKey && signTransaction
-      ? { publicKey, signTransaction }
+    publicKey && signTransaction && signMessage
+      ? { publicKey, signTransaction, signMessage }
       : null;
 
   const { status, entryStatuses, batchResult, error, run, reset } =

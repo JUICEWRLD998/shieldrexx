@@ -23,6 +23,7 @@ export interface PhantomCtx {
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   signTransaction: <T extends Transaction>(tx: T) => Promise<T>;
+  signMessage: (message: Uint8Array) => Promise<Uint8Array>;
 }
 
 // ---------------------------------------------------------------------------
@@ -103,6 +104,13 @@ export function PhantomProvider({ children }: { children: ReactNode }) {
     return phantom.signTransaction(tx) as Promise<T>;
   }, []);
 
+  const signMessage = useCallback(async (message: Uint8Array): Promise<Uint8Array> => {
+    const phantom = getPhantom();
+    if (!phantom) throw new Error("Phantom not installed");
+    const { signature } = await phantom.signMessage(message, "utf8");
+    return signature as Uint8Array;
+  }, []);
+
   const value = useMemo<PhantomCtx>(
     () => ({
       connected: !!publicKey,
@@ -111,8 +119,9 @@ export function PhantomProvider({ children }: { children: ReactNode }) {
       connect,
       disconnect,
       signTransaction,
+      signMessage,
     }),
-    [publicKey, connection, connect, disconnect, signTransaction]
+    [publicKey, connection, connect, disconnect, signTransaction, signMessage]
   );
 
   return (
