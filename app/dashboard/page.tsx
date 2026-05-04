@@ -5,6 +5,10 @@ import { WalletGuard } from "@/components/ui/WalletGuard";
 import { CSVUploader } from "@/components/payroll/CSVUploader";
 import { PayrollPreviewTable } from "@/components/payroll/PayrollPreviewTable";
 import { PayrollSummary } from "@/components/payroll/PayrollSummary";
+import { BatchSendButton } from "@/components/payroll/BatchSendButton";
+import { ViewingKeyCard } from "@/components/payroll/ViewingKeyCard";
+import { useCloakBatch } from "@/hooks/useCloakBatch";
+import { usePhantom } from "@/components/providers/PhantomProvider";
 import type { PayrollEntry } from "@/types";
 
 const STEPS = ["Upload CSV", "Review & Send", "Confirmation"] as const;
@@ -51,8 +55,18 @@ function StepIndicator({ current }: { current: number }) {
 }
 
 export default function DashboardPage() {
-  const [step, setStep] = useState<0 | 1>(0);
+  const { publicKey, connection, signTransaction } = usePhantom();
+  const [step, setStep] = useState<0 | 1 | 2>(0);
   const [entries, setEntries] = useState<PayrollEntry[]>([]);
+
+  // Build a wallet adapter shape from Phantom context
+  const wallet =
+    publicKey && signTransaction
+      ? { publicKey, signTransaction }
+      : null;
+
+  const { status, entryStatuses, batchResult, error, run, reset } =
+    useCloakBatch(wallet, connection);
 
   function handleParsed(parsed: PayrollEntry[]) {
     setEntries(parsed);
@@ -62,6 +76,12 @@ export default function DashboardPage() {
   function handleReset() {
     setEntries([]);
     setStep(0);
+    reset();
+  }
+
+  async function handleSend() {
+    await run(entries);
+    setStep(2);
   }
 
   return (
@@ -87,27 +107,61 @@ export default function DashboardPage() {
         {step === 1 && (
           <div className="flex flex-col gap-5">
             <PayrollSummary entries={entries} />
-            <PayrollPreviewTable entries={entries} onChange={setEntries} />
+            <PayrollPreviewTable
+              entries={entries}
+              onChange={setEntries}
+            />
+
+            {/* Error banner */}
+            {error && (
+              <div
+                className="rounded-xl p-4 text-sm"
+                style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "#f87171" }}
+                role="alert"
+              >
+                <span className="font-semibold">Batch failed: </span>{error}
+              </div>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-3 justify-between pt-1">
-              <button onClick={handleReset} className="btn-secondary text-sm">
+              <button
+                onClick={handleReset}
+                disabled={status === "running"}
+                className="btn-secondary text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              >
                 ← Upload different CSV
               </button>
-              <button
-                disabled={entries.length === 0}
-                className="btn-primary text-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
-                onClick={() => {
-                  // Phase 3 will replace this with useCloakBatch()
-                  alert("Phase 3: Cloak batch send will fire here.");
-                }}
-              >
-                Send Privately via Cloak →
-              </button>
-            </div>
 
-            <p className="text-center text-slate-600 text-xs">
-              Private batch disbursement via Cloak SDK — coming in Phase 3
-            </p>
+              <BatchSendButton
+                entries={entries}
+                entryStatuses={entryStatuses}
+                isRunning={status === "running"}
+                onSend={handleSend}
+                disabled={entries.length === 0}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 2: Confirmation / Viewing Key ── */}
+        {step === 2 && (
+          <div className="flex flex-col gap-5">
+            {batchResult && <ViewingKeyCard result={batchResult} />}
+
+            {/* If batch failed mid-way, still show what we have */}
+            {status === "failed" && !batchResult && (
+              <div
+                className="card rounded-2xl p-8 text-center flex flex-col gap-4"
+                role="alert"
+              >
+                <p className="text-red-400 font-semibold">Batch failed</p>
+                <p className="text-slate-400 text-sm">{error}</p>
+              </div>
+            )}
+
+            <button onClick={handleReset} className="btn-secondary text-sm w-fit">
+              ← Start a new batch
+            </button>
           </div>
         )}
       </div>

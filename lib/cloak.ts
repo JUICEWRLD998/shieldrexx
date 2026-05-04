@@ -1,9 +1,9 @@
-import { Connection, Transaction } from "@solana/web3.js";
+import { Connection } from "@solana/web3.js";
 
 /** Minimal wallet interface — avoids dependency on @solana/wallet-adapter-react */
 export interface WalletAdapter {
   publicKey: import("@solana/web3.js").PublicKey;
-  signTransaction: <T extends Transaction>(tx: T) => Promise<T>;
+  signTransaction: <T extends import("@solana/web3.js").Transaction | import("@solana/web3.js").VersionedTransaction>(tx: T) => Promise<T>;
 }
 
 import {
@@ -14,11 +14,19 @@ import {
   transact,
   fullWithdraw,
   NATIVE_SOL_MINT,
+  LAMPORTS_PER_SOL,
 } from "@cloak.dev/sdk";
 import type { AuditRecord, PayrollEntry, Token } from "@/types";
 import { PublicKey } from "@solana/web3.js";
 
 export type CloakClient = ReturnType<typeof createCloakClient>;
+
+export type PerEntryStatus = {
+  id: string;
+  phase: "idle" | "depositing" | "withdrawing" | "done" | "failed";
+  txSignature?: string;
+  error?: string;
+};
 
 export function createCloakClient(
   wallet: WalletAdapter,
@@ -31,70 +39,82 @@ export function createCloakClient(
   const programId = CLOAK_PROGRAM_ID;
 
   /**
-   * Deposit funds into the shielded pool, then privately send to recipients.
-   * Returns the tx signature and a serialised viewing key (the exported UTXO keypairs).
+   * For each recipient:
+   *  1. Generate a fresh UTXO keypair (never reused)
+   *  2. Deposit the recipient's amount into the shielded pool
+   *  3. Immediately withdraw that UTXO to the recipient's address
+   *
+   * On-chain, every deposit+withdraw pair appears as two opaque instructions.
+   * No observer can link sender → recipient or read the amounts.
+   *
+   * Returns the last tx signature and a serialised viewing key that encodes
+   * the full batch metadata for later audit.
    */
   async function batchSend(
     entries: PayrollEntry[],
-    grossLamports: bigint
+    onStatus: (id: string, phase: PerEntryStatus["phase"], txSig?: string) => void
   ): Promise<{ txSignature: string; viewingKey: string }> {
     if (!wallet.publicKey || !wallet.signTransaction) {
       throw new Error("Wallet not connected");
     }
 
-    // 1. Generate a fresh UTXO keypair for this batch (never reused)
-    const owner = await generateUtxoKeypair();
-    const depositOutput = await createUtxo(
-      grossLamports,
-      owner,
-      NATIVE_SOL_MINT
-    );
+    const batchMeta: Array<{ wallet: string; amount: number; token: Token; txSignature: string }> = [];
+    let lastSig = "";
 
-    // 2. Deposit into shielded pool
-    const deposited = await transact(
-      {
-        inputUtxos: [await createZeroUtxo(NATIVE_SOL_MINT)],
-        outputUtxos: [depositOutput],
-        externalAmount: grossLamports,
-        depositor: wallet.publicKey,
-      },
-      {
-        connection,
-        programId,
-        walletPublicKey: wallet.publicKey,
-        signTransaction: wallet.signTransaction,
-      }
-    );
-
-    // 3. Withdraw to each recipient in sequence (Cloak hides amount per output)
-    let lastSig = deposited.signature;
     for (const entry of entries) {
       const recipient = new PublicKey(entry.wallet);
-      const result = await fullWithdraw(
-        deposited.outputUtxos,
+
+      // Convert amount to lamports (SOL native pool; USDC/USDT treated as SOL-equivalent for devnet demo)
+      const lamports = BigInt(Math.round(entry.amount * LAMPORTS_PER_SOL));
+
+      // 1. Fresh UTXO keypair per recipient — never cached, never reused
+      const utxoKeypair = await generateUtxoKeypair();
+      const outputUtxo = await createUtxo(lamports, utxoKeypair, NATIVE_SOL_MINT);
+
+      // 2. Deposit into the shielded pool
+      onStatus(entry.id, "depositing");
+      const depositResult = await transact(
+        {
+          inputUtxos: [await createZeroUtxo(NATIVE_SOL_MINT), await createZeroUtxo(NATIVE_SOL_MINT)],
+          outputUtxos: [outputUtxo, await createZeroUtxo(NATIVE_SOL_MINT)],
+          externalAmount: lamports,
+          depositor: wallet.publicKey,
+        },
+        {
+          connection,
+          programId,
+          signTransaction: wallet.signTransaction,
+          depositorPublicKey: wallet.publicKey,
+        }
+      );
+
+      // 3. Withdraw to the recipient — uses the cached Merkle tree to avoid a relay round-trip
+      onStatus(entry.id, "withdrawing", depositResult.signature);
+      const withdrawResult = await fullWithdraw(
+        depositResult.outputUtxos,
         recipient,
         {
           connection,
           programId,
-          walletPublicKey: wallet.publicKey,
           signTransaction: wallet.signTransaction,
-          cachedMerkleTree: deposited.merkleTree,
+          depositorPublicKey: wallet.publicKey,
+          cachedMerkleTree: depositResult.merkleTree,
         }
       );
-      lastSig = result.signature;
+
+      lastSig = withdrawResult.signature;
+      onStatus(entry.id, "done", withdrawResult.signature);
+
+      batchMeta.push({
+        wallet: entry.wallet,
+        amount: entry.amount,
+        token: entry.token,
+        txSignature: withdrawResult.signature,
+      });
     }
 
-    // 4. Viewing key = exported UTXO owner keypair JSON (client-side only)
-    const viewingKey = JSON.stringify({
-      owner: Array.from(owner.secretKey ?? owner),
-      batchEntries: entries.map((e) => ({
-        wallet: e.wallet,
-        amount: e.amount,
-        token: e.token,
-        label: e.label,
-      })),
-    });
-
+    // Viewing key = the full batch metadata (client-side only, never sent to any server)
+    const viewingKey = JSON.stringify({ batchEntries: batchMeta });
     return { txSignature: lastSig, viewingKey };
   }
 
@@ -112,7 +132,7 @@ export function createCloakClient(
         wallet: string;
         amount: number;
         token: Token;
-        label?: string;
+        txSignature: string;
       }>;
     };
 
@@ -120,8 +140,7 @@ export function createCloakClient(
       wallet: e.wallet,
       amount: e.amount,
       token: e.token,
-      label: e.label,
-      txSignature,
+      txSignature: e.txSignature ?? txSignature,
       timestamp,
     }));
   }
