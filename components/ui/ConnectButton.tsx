@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePhantom } from "@/components/providers/PhantomProvider";
+import { useToast } from "@/components/providers/ToastProvider";
 
 function shorten(pk: string) {
   return `${pk.slice(0, 4)}…${pk.slice(-4)}`;
@@ -18,10 +19,41 @@ function shorten(pk: string) {
 export function ConnectButton() {
   const [mounted, setMounted] = useState(false);
   const { connected, publicKey, connect, disconnect } = usePhantom();
+  const { toast } = useToast();
+
+  // Track previous connected state to fire toasts on change
+  const [prevConnected, setPrevConnected] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (connected && !prevConnected) {
+      toast({
+        type: "success",
+        title: "Wallet connected",
+        message: publicKey ? shorten(publicKey.toString()) : undefined,
+      });
+    } else if (!connected && prevConnected) {
+      toast({ type: "info", title: "Wallet disconnected" });
+    }
+    setPrevConnected(connected);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected]);
+
+  async function handleConnect() {
+    try {
+      await connect();
+    } catch {
+      toast({ type: "error", title: "Connection failed", message: "Phantom wallet rejected the request." });
+    }
+  }
+
+  async function handleDisconnect() {
+    await disconnect();
+  }
 
   // Skeleton — matches dimensions of the real button so layout doesn't shift
   if (!mounted) {
@@ -37,7 +69,7 @@ export function ConnectButton() {
   if (connected && publicKey) {
     return (
       <button
-        onClick={disconnect}
+        onClick={handleDisconnect}
         className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-mono font-medium transition-all"
         style={{
           background: "rgba(109,40,217,0.18)",
@@ -59,7 +91,7 @@ export function ConnectButton() {
 
   return (
     <button
-      onClick={connect}
+      onClick={handleConnect}
       className="btn-primary px-4 py-1.5 text-sm font-semibold rounded-xl"
       aria-label="Connect Phantom wallet"
     >

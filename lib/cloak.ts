@@ -159,5 +159,3 @@ export function createCloakClient(
 
   return { batchSend, decryptBatchWithViewingKey };
 }
-
-export type CloakClient = ReturnType<typeof createCloakClient>;

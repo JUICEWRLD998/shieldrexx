@@ -61,7 +61,11 @@ export function useContributorPayments(
       const viewKey = await deriveKeys();
       setStatus("scanning");
 
-      const { CLOAK_API_URL, scanNotesForWallet } = await import("@cloak.dev/sdk");
+      // CLOAK_API_URL may not be exported in all SDK versions; fall back to the known relay URL
+      const sdk = await import("@cloak.dev/sdk") as Record<string, unknown>;
+      const CLOAK_API_URL = (sdk["CLOAK_API_URL"] as string | undefined) ?? "https://api.cloak.dev";
+      const { scanNotesForWallet } = sdk as { scanNotesForWallet?: unknown };
+      void scanNotesForWallet; // reserved for future direct scan usage
 
       // Fetch encrypted chain note envelopes from the relay
       const res = await fetch(

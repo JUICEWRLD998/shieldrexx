@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, type DragEvent, type ChangeEvent } from "react";
 import { parseCSV, type ParseResult } from "@/lib/csv";
+import { useToast } from "@/components/providers/ToastProvider";
 import type { PayrollEntry } from "@/types";
 
 interface Props {
@@ -14,10 +15,13 @@ export function CSVUploader({ onParsed }: Props) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
+  const { toast } = useToast();
 
   async function handleFile(file: File) {
     if (!file.name.endsWith(".csv")) {
-      setErrors(["Please upload a .csv file."]);
+      const msg = "Please upload a .csv file.";
+      setErrors([msg]);
+      toast({ type: "error", title: "Invalid file type", message: msg });
       return;
     }
     setLoading(true);
@@ -30,14 +34,29 @@ export function CSVUploader({ onParsed }: Props) {
 
     if (result.errors.length > 0 && result.entries.length === 0) {
       setErrors(result.errors);
+      toast({
+        type: "error",
+        title: `CSV parse failed — ${result.errors.length} error${result.errors.length > 1 ? "s" : ""}`,
+        message: result.errors[0],
+      });
       return;
     }
 
     if (result.errors.length > 0) {
       setErrors(result.errors);
+      toast({
+        type: "warning",
+        title: `${result.errors.length} row${result.errors.length > 1 ? "s" : ""} skipped`,
+        message: result.errors[0],
+      });
     }
 
     if (result.entries.length > 0) {
+      toast({
+        type: "success",
+        title: `${result.entries.length} recipient${result.entries.length > 1 ? "s" : ""} loaded`,
+        message: file.name,
+      });
       onParsed(result.entries);
     }
   }

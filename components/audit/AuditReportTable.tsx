@@ -93,11 +93,13 @@ export function AuditReportTable({ records, batchTxSignature, timestamp }: Props
         role="region"
         aria-label="Decrypted batch recipients"
       >
+        <div className="overflow-x-auto">
         {/* Table header */}
         <div
           className="grid text-left px-4 py-3"
           style={{
             gridTemplateColumns: "2fr 1fr 1fr 2fr",
+            minWidth: "480px",
             background: "rgba(13,18,48,0.6)",
             borderBottom: "1px solid rgba(124,58,237,0.15)",
           }}
@@ -117,6 +119,7 @@ export function AuditReportTable({ records, batchTxSignature, timestamp }: Props
               className="grid px-4 py-3.5 items-center hover:bg-white/2 transition-colors"
               style={{
                 gridTemplateColumns: "2fr 1fr 1fr 2fr",
+                minWidth: "480px",
                 borderColor: "rgba(124,58,237,0.08)",
               }}
             >
@@ -165,6 +168,7 @@ export function AuditReportTable({ records, batchTxSignature, timestamp }: Props
             </div>
           ))}
         </div>
+        </div>{/* end overflow-x-auto */}
       </div>
 
       {/* Export row */}

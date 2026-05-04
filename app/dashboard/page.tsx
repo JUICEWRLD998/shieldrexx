@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { WalletGuard } from "@/components/ui/WalletGuard";
 import { CSVUploader } from "@/components/payroll/CSVUploader";
 import { PayrollPreviewTable } from "@/components/payroll/PayrollPreviewTable";
@@ -9,18 +10,19 @@ import { BatchSendButton } from "@/components/payroll/BatchSendButton";
 import { ViewingKeyCard } from "@/components/payroll/ViewingKeyCard";
 import { useCloakBatch } from "@/hooks/useCloakBatch";
 import { usePhantom } from "@/components/providers/PhantomProvider";
+import { useToast } from "@/components/providers/ToastProvider";
 import type { PayrollEntry } from "@/types";
 
 const STEPS = ["Upload CSV", "Review & Send", "Confirmation"] as const;
 
 function StepIndicator({ current }: { current: number }) {
   return (
-    <div className="flex items-center gap-2 mb-8" aria-label="Progress steps" role="list">
+    <div className="flex items-center gap-1.5 sm:gap-2 mb-8 overflow-x-auto pb-1" aria-label="Progress steps" role="list">
       {STEPS.map((step, i) => {
         const done = i < current;
         const active = i === current;
         return (
-          <div key={step} className="flex items-center gap-2" role="listitem">
+          <div key={step} className="flex items-center gap-1.5 sm:gap-2 shrink-0" role="listitem">
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
               style={
@@ -35,14 +37,14 @@ function StepIndicator({ current }: { current: number }) {
               {done ? "✓" : i + 1}
             </div>
             <span
-              className="text-sm font-medium"
+              className="text-xs sm:text-sm font-medium whitespace-nowrap"
               style={{ color: active ? "#f1f5f9" : done ? "#a78bfa" : "#4b5563" }}
             >
               {step}
             </span>
             {i < STEPS.length - 1 && (
               <div
-                className="w-6 h-px mx-1"
+                className="w-4 sm:w-6 h-px mx-0.5 sm:mx-1 shrink-0"
                 style={{ background: done ? "rgba(124,58,237,0.5)" : "rgba(124,58,237,0.18)" }}
                 aria-hidden="true"
               />
@@ -58,6 +60,7 @@ export default function DashboardPage() {
   const { publicKey, connection, signTransaction, signMessage } = usePhantom();
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [entries, setEntries] = useState<PayrollEntry[]>([]);
+  const { toast } = useToast();
 
   // Build a wallet adapter shape from Phantom context
   const wallet =
@@ -67,6 +70,26 @@ export default function DashboardPage() {
 
   const { status, entryStatuses, batchResult, error, run, reset } =
     useCloakBatch(wallet, connection);
+
+  // Toast on batch status changes
+  useEffect(() => {
+    if (status === "success" && batchResult) {
+      toast({
+        type: "success",
+        title: "Batch sent privately",
+        message: `${batchResult.entries.length} recipient${batchResult.entries.length !== 1 ? "s" : ""} disbursed · viewing key saved`,
+        duration: 5000,
+      });
+    } else if (status === "failed" && error) {
+      toast({
+        type: "error",
+        title: "Batch send failed",
+        message: error.length > 80 ? error.slice(0, 77) + "…" : error,
+        duration: 6000,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   function handleParsed(parsed: PayrollEntry[]) {
     setEntries(parsed);
@@ -98,14 +121,30 @@ export default function DashboardPage() {
 
         <StepIndicator current={step} />
 
+        <AnimatePresence mode="wait">
         {/* ── Step 0: Upload ── */}
         {step === 0 && (
-          <CSVUploader onParsed={handleParsed} />
+          <motion.div
+            key="step-0"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.28 }}
+          >
+            <CSVUploader onParsed={handleParsed} />
+          </motion.div>
         )}
 
         {/* ── Step 1: Review & Send ── */}
         {step === 1 && (
-          <div className="flex flex-col gap-5">
+          <motion.div
+            key="step-1"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.28 }}
+            className="flex flex-col gap-5"
+          >
             <PayrollSummary entries={entries} />
             <PayrollPreviewTable
               entries={entries}
@@ -140,12 +179,19 @@ export default function DashboardPage() {
                 disabled={entries.length === 0}
               />
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* ── Step 2: Confirmation / Viewing Key ── */}
         {step === 2 && (
-          <div className="flex flex-col gap-5">
+          <motion.div
+            key="step-2"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.28 }}
+            className="flex flex-col gap-5"
+          >
             {batchResult && <ViewingKeyCard result={batchResult} />}
 
             {/* If batch failed mid-way, still show what we have */}
@@ -162,8 +208,9 @@ export default function DashboardPage() {
             <button onClick={handleReset} className="btn-secondary text-sm w-fit">
               ← Start a new batch
             </button>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
     </WalletGuard>
   );

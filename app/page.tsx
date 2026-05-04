@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { motion } from "framer-motion";
 
 /* ── Data ──────────────────────────────────────────────── */
 const STATS = [
@@ -78,43 +79,65 @@ export default function LandingPage() {
       {/* ──────────────── HERO ──────────────── */}
       <section className="relative z-10 max-w-5xl mx-auto px-4 pt-28 pb-20 text-center">
         {/* Live badge */}
-        <div className="badge mb-10 mx-auto w-fit" role="status">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="badge mb-10 mx-auto w-fit"
+          role="status"
+        >
           <span
             className="w-2 h-2 rounded-full block"
             style={{ background: "#a78bfa" }}
             aria-hidden="true"
           />
           Live on Solana Devnet&nbsp;&nbsp;·&nbsp;&nbsp;Powered by Cloak Protocol
-        </div>
+        </motion.div>
 
         {/* Headline */}
-        <h1
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.08 }}
           className="font-extrabold tracking-tight leading-none mb-6"
           style={{ fontSize: "clamp(3rem, 9vw, 5.5rem)", letterSpacing: "-0.02em" }}
         >
           <span className="text-white">Pay Your Team.</span>
           <br />
           <span className="gradient-text">Privately.</span>
-        </h1>
+        </motion.h1>
 
         {/* Sub */}
-        <p className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+        <motion.p
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.16 }}
+          className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
+        >
           Send payroll privately on Solana. No salary leaks on-chain. Your team gets paid securely,
           and you keep an audit trail that only you can unlock.
-        </p>
+        </motion.p>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-20">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.24 }}
+          className="flex flex-col sm:flex-row gap-4 justify-center mb-20"
+        >
           <Link href="/dashboard" className="btn-primary">
             Launch Payroll Run <span aria-hidden="true">→</span>
           </Link>
           <Link href="/audit" className="btn-secondary">
             Audit a Batch
           </Link>
-        </div>
+        </motion.div>
 
         {/* Stats strip */}
-        <div
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.32 }}
           className="inline-grid grid-cols-3 rounded-2xl overflow-hidden border w-full max-w-xl mx-auto"
           style={{ borderColor: "rgba(124,58,237,0.25)", background: "rgba(109,40,217,0.07)" }}
           role="list"
@@ -131,25 +154,35 @@ export default function LandingPage() {
               <p className="text-slate-500 text-xs mt-1.5 leading-snug">{s.label}</p>
             </div>
           ))}
-        </div>
+        </motion.div>
       </section>
 
       {/* ──────────── HOW IT WORKS ──────────── */}
       <section className="relative z-10 max-w-5xl mx-auto px-4 pb-28" aria-labelledby="how-h">
-        <div className="mb-14">
+        <motion.div
+          className="mb-14"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.5 }}
+        >
           <p className="step-num uppercase tracking-widest mb-4">How it works</p>
           <h2 id="how-h" className="text-3xl sm:text-4xl font-bold text-white leading-tight">
             From upload to payout
             <br />
             <span className="gradient-text">in seconds.</span>
           </h2>
-        </div>
+        </motion.div>
 
         <div className="flex flex-col gap-5">
-          {STEPS.map(({ num, title, desc }) => (
-            <div
+          {STEPS.map(({ num, title, desc }, i) => (
+            <motion.div
               key={num}
               className="card rounded-2xl p-7 flex items-start gap-6"
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.45, delay: i * 0.1 }}
             >
               <div
                 className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center"
@@ -162,59 +195,76 @@ export default function LandingPage() {
                 <h3 className="text-white font-semibold text-base mb-1.5">{title}</h3>
                 <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>
 
       {/* ─────────────── PLATFORM ─────────────── */}
       <section className="relative z-10 max-w-5xl mx-auto px-4 pb-28" aria-labelledby="platform-h">
-        <div className="mb-14">
+        <motion.div
+          className="mb-14"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.5 }}
+        >
           <p className="step-num uppercase tracking-widest mb-4">Platform</p>
           <h2 id="platform-h" className="text-3xl sm:text-4xl font-bold text-white leading-tight">
             Everything you need to
             <br />
             <span className="gradient-text">pay privately.</span>
           </h2>
-        </div>
+        </motion.div>
 
         <div className="grid sm:grid-cols-2 gap-5">
-          {PLATFORM.map(({ tag, title, desc, href, cta }) => (
-            <Link
+          {PLATFORM.map(({ tag, title, desc, href, cta }, i) => (
+            <motion.div
               key={title}
-              href={href}
-              className="card rounded-2xl p-8 flex flex-col gap-4 group no-underline"
-              aria-label={title}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.45, delay: i * 0.08 }}
             >
-              <div>
-                <span className="step-num uppercase tracking-widest block mb-3">{tag}</span>
-                <h3 className="text-white font-bold text-xl mb-3 leading-snug">{title}</h3>
-                <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
-              </div>
-              <div className="mt-auto pt-2">
-                <span
-                  className="inline-flex items-center gap-2 text-sm font-semibold transition-all duration-200"
-                  style={{ color: "#a78bfa" }}
-                >
-                  {cta}
+              <Link
+                href={href}
+                className="card rounded-2xl p-8 flex flex-col gap-4 group no-underline h-full"
+                aria-label={title}
+              >
+                <div>
+                  <span className="step-num uppercase tracking-widest block mb-3">{tag}</span>
+                  <h3 className="text-white font-bold text-xl mb-3 leading-snug">{title}</h3>
+                  <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
+                </div>
+                <div className="mt-auto pt-2">
                   <span
-                    className="transition-transform duration-200 group-hover:translate-x-1"
-                    aria-hidden="true"
+                    className="inline-flex items-center gap-2 text-sm font-semibold transition-all duration-200"
+                    style={{ color: "#a78bfa" }}
                   >
-                    →
+                    {cta}
+                    <span
+                      className="transition-transform duration-200 group-hover:translate-x-1"
+                      aria-hidden="true"
+                    >
+                      →
+                    </span>
                   </span>
-                </span>
-              </div>
-            </Link>
+                </div>
+              </Link>
+            </motion.div>
           ))}
         </div>
       </section>
 
       {/* ─────────────── BOTTOM CTA ─────────────── */}
       <section className="relative z-10 max-w-5xl mx-auto px-4 pb-32">
-        <div
+        <motion.div
           className="card rounded-3xl p-12 sm:p-20 text-center"
           style={{ background: "linear-gradient(135deg, rgba(13,18,48,0.98) 0%, rgba(50,20,90,0.45) 100%)" }}
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.55 }}
         >
           <p className="step-num uppercase tracking-widest mb-5">Get started</p>
           <h2
@@ -237,7 +287,7 @@ export default function LandingPage() {
               View My Payments
             </Link>
           </div>
-        </div>
+        </motion.div>
       </section>
     </div>
   );
