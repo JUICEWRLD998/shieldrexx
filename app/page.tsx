@@ -99,9 +99,8 @@ export default function LandingPage() {
 
         {/* Sub */}
         <p className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-          On a transparent chain, every contributor can see every colleague&apos;s salary.{" "}
-          <span className="text-white font-semibold">Shieldrexx</span> fixes that —
-          zero-knowledge batch disbursements, private by default, auditable by choice.
+          Send payroll privately on Solana. No salary leaks on-chain. Your team gets paid securely,
+          and you keep an audit trail that only you can unlock.
         </p>
 
         {/* CTAs */}
