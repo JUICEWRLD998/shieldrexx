@@ -1,19 +1,16 @@
 "use client";
 
-/**
- * PhantomProvider — compatibility shim over @solana/wallet-adapter-react.
- *
- * All existing usePhantom() call sites continue to work unchanged.
- * The real wallet state comes from WalletProvider (in SolanaProviders.tsx).
- * This file just exposes the same PhantomCtx interface so no other file
- * needs to be touched.
- */
-
-import { type ReactNode } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useConnection } from "@solana/wallet-adapter-react";
-import { type Transaction, type VersionedTransaction } from "@solana/web3.js";
-import type { Connection, PublicKey } from "@solana/web3.js";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { Connection, PublicKey, type Transaction } from "@solana/web3.js";
+import { SOLANA_RPC_URL } from "@/lib/constants";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,46 +27,110 @@ export interface PhantomCtx {
 }
 
 // ---------------------------------------------------------------------------
-// PhantomProvider — no-op wrapper (WalletProvider is the real provider)
+// Helpers
 // ---------------------------------------------------------------------------
 
-export function PhantomProvider({ children }: { children: ReactNode }) {
-  return <>{children}</>;
+function getPhantom() {
+  if (typeof window === "undefined") return null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (window as any).phantom?.solana ?? null;
 }
 
 // ---------------------------------------------------------------------------
-// usePhantom — thin shim over useWallet + useConnection
+// Context
 // ---------------------------------------------------------------------------
 
+const PhantomContext = createContext<PhantomCtx | null>(null);
+
+export function PhantomProvider({ children }: { children: ReactNode }) {
+  const [publicKey, setPublicKey] = useState<PublicKey | null>(null);
+
+  const connection = useMemo(
+    () => new Connection(SOLANA_RPC_URL, "confirmed"),
+    []
+  );
+
+  // Attach Phantom event listeners and attempt eager reconnect
+  useEffect(() => {
+    const phantom = getPhantom();
+    if (!phantom) return;
+
+    const onConnect = (pk: PublicKey) => setPublicKey(pk);
+    const onDisconnect = () => setPublicKey(null);
+    const onAccountChanged = (pk: PublicKey | null) => {
+      setPublicKey(pk);
+      if (!pk) phantom.connect({ onlyIfTrusted: true }).catch(() => {});
+    };
+
+    phantom.on("connect", onConnect);
+    phantom.on("disconnect", onDisconnect);
+    phantom.on("accountChanged", onAccountChanged);
+
+    // Eager reconnect — silently fails if not previously approved
+    phantom.connect({ onlyIfTrusted: true }).catch(() => {});
+
+    return () => {
+      phantom.off("connect", onConnect);
+      phantom.off("disconnect", onDisconnect);
+      phantom.off("accountChanged", onAccountChanged);
+    };
+  }, []);
+
+  const connect = useCallback(async () => {
+    const phantom = getPhantom();
+    if (!phantom) {
+      window.open("https://phantom.app/", "_blank", "noopener,noreferrer");
+      return;
+    }
+    try {
+      const resp = await phantom.connect();
+      setPublicKey(resp.publicKey);
+    } catch {
+      // User rejected
+    }
+  }, []);
+
+  const disconnect = useCallback(async () => {
+    try {
+      await getPhantom()?.disconnect();
+    } finally {
+      setPublicKey(null);
+    }
+  }, []);
+
+  const signTransaction = useCallback(async <T extends Transaction>(tx: T): Promise<T> => {
+    const phantom = getPhantom();
+    if (!phantom) throw new Error("Phantom not installed");
+    return phantom.signTransaction(tx) as Promise<T>;
+  }, []);
+
+  const signMessage = useCallback(async (message: Uint8Array): Promise<Uint8Array> => {
+    const phantom = getPhantom();
+    if (!phantom) throw new Error("Phantom not installed");
+    const { signature } = await phantom.signMessage(message, "utf8");
+    return signature as Uint8Array;
+  }, []);
+
+  const value = useMemo<PhantomCtx>(
+    () => ({
+      connected: !!publicKey,
+      publicKey,
+      connection,
+      connect,
+      disconnect,
+      signTransaction,
+      signMessage,
+    }),
+    [publicKey, connection, connect, disconnect, signTransaction, signMessage]
+  );
+
+  return (
+    <PhantomContext.Provider value={value}>{children}</PhantomContext.Provider>
+  );
+}
+
 export function usePhantom(): PhantomCtx {
-  const { connected, publicKey, connect, disconnect, signTransaction, signMessage } = useWallet();
-  const { connection } = useConnection();
-
-  return {
-    connected,
-    publicKey: publicKey ?? null,
-    connection,
-
-    connect: async () => {
-      await connect();
-    },
-
-    disconnect: async () => {
-      await disconnect();
-    },
-
-    // The adapter's signTransaction is typed to handle both Transaction and
-    // VersionedTransaction. We cast here to match the legacy generic signature
-    // used by lib/cloak.ts — safe because Cloak only uses legacy Transaction.
-    signTransaction: signTransaction
-      ? (tx) =>
-          (signTransaction as (tx: Transaction | VersionedTransaction) => Promise<Transaction | VersionedTransaction>)(
-            tx
-          ) as Promise<typeof tx>
-      : () => Promise.reject(new Error("Wallet not connected")),
-
-    signMessage: signMessage
-      ? (msg) => signMessage(msg)
-      : () => Promise.reject(new Error("Wallet not connected")),
-  };
+  const ctx = useContext(PhantomContext);
+  if (!ctx) throw new Error("usePhantom must be used inside <PhantomProvider>");
+  return ctx;
 }
