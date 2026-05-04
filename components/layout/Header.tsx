@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { ConnectButton } from "@/components/ui/ConnectButton";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard" },
@@ -104,7 +104,7 @@ export function Header() {
         </nav>
 
         {/* Wallet button */}
-        <WalletMultiButton />
+        <ConnectButton />
       </div>
     </header>
   );

@@ -1,5 +1,11 @@
-import { Connection } from "@solana/web3.js";
-import { WalletContextState } from "@solana/wallet-adapter-react";
+import { Connection, Transaction } from "@solana/web3.js";
+
+/** Minimal wallet interface — avoids dependency on @solana/wallet-adapter-react */
+export interface WalletAdapter {
+  publicKey: import("@solana/web3.js").PublicKey;
+  signTransaction: <T extends Transaction>(tx: T) => Promise<T>;
+}
+
 import {
   CLOAK_PROGRAM_ID,
   generateUtxoKeypair,
@@ -15,7 +21,7 @@ import { PublicKey } from "@solana/web3.js";
 export type CloakClient = ReturnType<typeof createCloakClient>;
 
 export function createCloakClient(
-  wallet: WalletContextState,
+  wallet: WalletAdapter,
   connection: Connection
 ) {
   if (!wallet.publicKey || !wallet.signTransaction) {

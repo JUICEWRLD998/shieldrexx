@@ -1,7 +1,7 @@
 "use client";
 
-import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { usePhantom } from "@/components/providers/PhantomProvider";
+import { ConnectButton } from "@/components/ui/ConnectButton";
 import { type ReactNode } from "react";
 
 function LockIcon() {
@@ -26,7 +26,7 @@ function LockIcon() {
 }
 
 export function WalletGuard({ children }: { children: ReactNode }) {
-  const { connected } = useWallet();
+  const { connected } = usePhantom();
 
   if (!connected) {
     return (
@@ -63,16 +63,12 @@ export function WalletGuard({ children }: { children: ReactNode }) {
           </div>
 
           {/* Connect button */}
-          <WalletMultiButton
-            style={{
-              width: "100%",
-              justifyContent: "center",
-              borderRadius: "10px",
-            }}
-          />
+          <div className="w-full flex justify-center">
+            <ConnectButton />
+          </div>
 
           <p className="text-slate-600 text-xs">
-            Phantom, Solflare, and other standard Solana wallets are supported.
+            Phantom wallet required. Make sure it is installed and set to Devnet.
           </p>
         </div>
       </div>
