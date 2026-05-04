@@ -10,43 +10,6 @@ const NAV = [
   { href: "/audit", label: "Audit" },
 ] as const;
 
-function ShieldrexxLogo() {
-  return (
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"
-        fill="url(#logo-g)"
-      />
-      <path
-        d="M9.5 12l1.5 1.5 3.5-3.5"
-        stroke="white"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient
-          id="logo-g"
-          x1="3"
-          y1="2"
-          x2="21"
-          y2="22"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop stopColor="#c4b5fd" />
-          <stop offset="1" stopColor="#7c3aed" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
-
 export function Header() {
   const pathname = usePathname();
 
@@ -67,7 +30,6 @@ export function Header() {
           className="flex items-center gap-2 font-bold text-base tracking-tight"
           aria-label="Shieldrexx home"
         >
-          <ShieldrexxLogo />
           <span>
             <span className="text-white">Shield</span>
             <span className="gradient-text">rexx</span>

@@ -21,6 +21,14 @@ html, body {
   background-color: var(--bg-deep);
   color: #f1f5f9;
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
 }
 
 /* ── Gradient text ────────────────────────────────────── */
@@ -44,8 +52,8 @@ html, body {
   0%, 100% { transform: translateY(0px) scale(1);    opacity: 0.5; }
   50%       { transform: translateY(-24px) scale(1.06); opacity: 0.8; }
 }
-.orb   { animation: orb-drift 9s  ease-in-out infinite; }
-.orb-2 { animation: orb-drift 12s ease-in-out infinite; animation-delay: -5s; }
+.orb   { }
+.orb-2 { }
 
 /* ── Glass card ───────────────────────────────────────── */
 .card {
