@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WalletGuard } from "@/components/ui/WalletGuard";
 import { CSVUploader } from "@/components/payroll/CSVUploader";
@@ -8,6 +8,7 @@ import { PayrollPreviewTable } from "@/components/payroll/PayrollPreviewTable";
 import { PayrollSummary } from "@/components/payroll/PayrollSummary";
 import { BatchSendButton } from "@/components/payroll/BatchSendButton";
 import { ViewingKeyCard } from "@/components/payroll/ViewingKeyCard";
+import { InfoBanner } from "@/components/ui/InfoBanner";
 import { useCloakBatch } from "@/hooks/useCloakBatch";
 import { usePhantom } from "@/components/providers/PhantomProvider";
 import { useToast } from "@/components/providers/ToastProvider";
@@ -63,10 +64,13 @@ export default function DashboardPage() {
   const { toast } = useToast();
 
   // Build a wallet adapter shape from Phantom context
-  const wallet =
-    publicKey && signTransaction && signMessage
-      ? { publicKey, signTransaction, signMessage }
-      : null;
+  const wallet = useMemo(
+    () =>
+      publicKey && signTransaction && signMessage
+        ? { publicKey, signTransaction, signMessage }
+        : null,
+    [publicKey, signMessage, signTransaction]
+  );
 
   const { status, entryStatuses, batchResult, error, run, reset } =
     useCloakBatch(wallet, connection);
@@ -91,21 +95,21 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
-  function handleParsed(parsed: PayrollEntry[]) {
+  const handleParsed = useCallback((parsed: PayrollEntry[]) => {
     setEntries(parsed);
     setStep(1);
-  }
+  }, []);
 
-  function handleReset() {
+  const handleReset = useCallback(() => {
     setEntries([]);
     setStep(0);
     reset();
-  }
+  }, [reset]);
 
-  async function handleSend() {
+  const handleSend = useCallback(async () => {
     await run(entries);
     setStep(2);
-  }
+  }, [entries, run]);
 
   return (
     <WalletGuard>
@@ -153,13 +157,7 @@ export default function DashboardPage() {
 
             {/* Error banner */}
             {error && (
-              <div
-                className="rounded-xl p-4 text-sm"
-                style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "#f87171" }}
-                role="alert"
-              >
-                <span className="font-semibold">Batch failed: </span>{error}
-              </div>
+              <InfoBanner type="error" title="Batch failed" description={error} role="alert" />
             )}
 
             <div className="flex flex-col sm:flex-row gap-3 justify-between pt-1">
@@ -196,13 +194,12 @@ export default function DashboardPage() {
 
             {/* If batch failed mid-way, still show what we have */}
             {status === "failed" && !batchResult && (
-              <div
-                className="card rounded-2xl p-8 text-center flex flex-col gap-4"
+              <InfoBanner
+                type="error"
+                title="Batch failed"
+                description={error ?? "Unknown error"}
                 role="alert"
-              >
-                <p className="text-red-400 font-semibold">Batch failed</p>
-                <p className="text-slate-400 text-sm">{error}</p>
-              </div>
+              />
             )}
 
             <button onClick={handleReset} className="btn-secondary text-sm w-fit">

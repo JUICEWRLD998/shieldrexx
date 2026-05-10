@@ -118,13 +118,16 @@ export function useCloakBatch(
     entryStatusesRef.current = [];
   }, []);
 
-  return {
-    status,
-    entryStatuses,
-    batchResult,
-    error,
-    run,
-    reset,
-    solscanUrl: SOLSCAN_TX_URL,
-  };
+  return useMemo(
+    () => ({
+      status,
+      entryStatuses,
+      batchResult,
+      error,
+      run,
+      reset,
+      solscanUrl: SOLSCAN_TX_URL,
+    }),
+    [batchResult, entryStatuses, error, reset, run, status]
+  );
 }

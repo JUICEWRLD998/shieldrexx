@@ -115,6 +115,30 @@ export function DataGrid<T extends { id?: string | number }>({
     }
   }
 
+  function handleHeaderKeyDown(
+    e: React.KeyboardEvent<HTMLTableCellElement>,
+    colKey: string,
+    sortable?: boolean
+  ) {
+    if (!sortable) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleSort(colKey);
+    }
+  }
+
+  function handleRowKeyDown(
+    e: React.KeyboardEvent<HTMLTableRowElement>,
+    item: T,
+    rowIdx: number
+  ) {
+    if (!onRowClick) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onRowClick(item, rowIdx);
+    }
+  }
+
   // Render cell value
   function renderCell(col: Column<T>, item: T, rowIndex: number): ReactNode {
     if (col.render) {
@@ -157,6 +181,7 @@ export function DataGrid<T extends { id?: string | number }>({
       style={{ maxHeight }}
     >
       <table className="w-full text-sm border-collapse" role="table">
+        <caption className="sr-only">Interactive data grid</caption>
         {/* Header */}
         {showHeader && (
           <thead>
@@ -177,12 +202,23 @@ export function DataGrid<T extends { id?: string | number }>({
               {visibleCols.map((col) => (
                 <th
                   key={col.key}
-                  className={`px-4 py-3 text-xs uppercase font-semibold text-slate-500 tracking-wider cursor-pointer hover:text-slate-400 transition-colors ${
-                    col.sortable ? "select-none" : ""
+                  className={`px-4 py-3 text-xs uppercase font-semibold text-slate-500 tracking-wider transition-colors ${
+                    col.sortable ? "select-none cursor-pointer hover:text-slate-400" : ""
                   } ${alignClass[col.align || "left"]} ${col.className || ""}`}
                   style={{ width: col.width }}
                   onClick={() => col.sortable && handleSort(col.key)}
+                  onKeyDown={(e) => handleHeaderKeyDown(e, col.key, col.sortable)}
+                  tabIndex={col.sortable ? 0 : -1}
                   role="columnheader"
+                  aria-sort={
+                    col.sortable
+                      ? sortKey === col.key
+                        ? sortOrder === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                      : undefined
+                  }
                 >
                   <div className="flex items-center gap-1">
                     {col.label}
@@ -242,11 +278,14 @@ export function DataGrid<T extends { id?: string | number }>({
                 <tr
                   key={item.id || rowIdx}
                   onClick={() => onRowClick?.(item, rowIdx)}
+                  onKeyDown={(e) => handleRowKeyDown(e, item, rowIdx)}
                   style={{
                     borderTop: `1px solid ${BACKGROUND.dimmer}`,
                     background: striped && rowIdx % 2 === 1 ? "rgba(13, 18, 48, 0.3)" : undefined,
                   }}
-                  className={hoverable ? "hover:bg-white/2 transition-colors cursor-pointer" : ""}
+                  className={hoverable ? "hover:bg-white/2 transition-colors" : ""}
+                  tabIndex={onRowClick ? 0 : -1}
+                  role={onRowClick ? "button" : undefined}
                 >
                   {showRowNumbers && (
                     <td

@@ -1,24 +1,34 @@
 "use client";
 
+import { useMemo } from "react";
 import type { PayrollEntry, Token } from "@/types";
+import { getTokenColor } from "@/lib/design";
+import { formatNumber } from "@/lib/utils";
 
 interface Props {
   entries: PayrollEntry[];
 }
 
-const TOKEN_COLOR: Record<Token, string> = {
-  USDC: "#4ade80",
-  USDT: "#34d399",
-  SOL:  "#a78bfa",
-};
-
 export function PayrollSummary({ entries }: Props) {
-  const totals = entries.reduce<Record<string, number>>((acc, e) => {
-    acc[e.token] = (acc[e.token] ?? 0) + e.amount;
-    return acc;
-  }, {});
+  const totals = useMemo(
+    () =>
+      entries.reduce<Record<string, number>>((acc, e) => {
+        acc[e.token] = (acc[e.token] ?? 0) + e.amount;
+        return acc;
+      }, {}),
+    [entries]
+  );
 
-  const tokenBreakdown = Object.entries(totals) as [Token, number][];
+  const tokenBreakdown = useMemo(
+    () => Object.entries(totals) as [Token, number][],
+    [totals]
+  );
+
+  const statusCounts = useMemo(() => {
+    const counts = { pending: 0, sent: 0, failed: 0 };
+    for (const e of entries) counts[e.status] += 1;
+    return counts;
+  }, [entries]);
 
   return (
     <div
@@ -48,9 +58,9 @@ export function PayrollSummary({ entries }: Props) {
               <p className="step-num uppercase tracking-widest mb-0.5">{token}</p>
               <p
                 className="text-2xl font-bold"
-                style={{ color: TOKEN_COLOR[token] ?? "#f1f5f9" }}
+                style={{ color: getTokenColor(token) }}
               >
-                {total.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                {formatNumber(total, 6)}
               </p>
             </div>
           ))
@@ -58,12 +68,12 @@ export function PayrollSummary({ entries }: Props) {
       </div>
 
       {/* Status summary */}
-      {entries.some((e) => e.status !== "pending") && (
+      {(statusCounts.sent > 0 || statusCounts.failed > 0) && (
         <>
           <div className="hidden sm:block self-stretch w-px" style={{ background: "rgba(124,58,237,0.2)" }} aria-hidden="true" />
           <div className="flex gap-4 text-sm">
             {(["pending", "sent", "failed"] as const).map((s) => {
-              const count = entries.filter((e) => e.status === s).length;
+              const count = statusCounts[s];
               if (count === 0) return null;
               const color = s === "sent" ? "#4ade80" : s === "failed" ? "#f87171" : "#fbbf24";
               return (
