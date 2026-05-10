@@ -33,6 +33,7 @@ ShieldRexx has four user-facing routes:
 |---|---|---|
 | `/` | Landing page | No |
 | `/dashboard` | Upload CSV → review → send batch privately | Yes (treasurer) |
+| `/history` | Search, filter, export, and delete past local batches | No |
 | `/contributor` | View your own incoming private payments | Yes (recipient) |
 | `/audit` | Paste a viewing key → full payroll breakdown | No (accountant-friendly) |
 

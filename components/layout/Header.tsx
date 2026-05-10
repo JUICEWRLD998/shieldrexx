@@ -8,6 +8,7 @@ import { ConnectButton } from "@/components/ui/ConnectButton";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/history", label: "History" },
   { href: "/contributor", label: "My Payments" },
   { href: "/audit", label: "Audit" },
 ] as const;
