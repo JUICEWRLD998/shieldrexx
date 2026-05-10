@@ -7,6 +7,7 @@ import { ViewingKeyImport } from "@/components/audit/ViewingKeyImport";
 import { AuditReportTable } from "@/components/audit/AuditReportTable";
 import { useToast } from "@/components/providers/ToastProvider";
 import { InfoBanner } from "@/components/ui/InfoBanner";
+import { ViewingKeyManager } from "@/components/keyManagement/ViewingKeyManager";
 
 export default function AuditPage() {
   const { batch, status, error, importKey, reset } = useViewingKey();
@@ -68,13 +69,16 @@ export default function AuditPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.28 }}
-            className="card rounded-2xl p-6"
+            className="flex flex-col gap-5"
           >
-            <ViewingKeyImport
-              onImport={importKey}
-              isError={status === "error"}
-              errorMessage={error}
-            />
+            <div className="card rounded-2xl p-6">
+              <ViewingKeyImport
+                onImport={importKey}
+                isError={status === "error"}
+                errorMessage={error}
+              />
+            </div>
+            <ViewingKeyManager onUseKey={importKey} />
           </motion.div>
         )}
 
