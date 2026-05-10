@@ -10,8 +10,12 @@ import { BatchSendButton } from "@/components/payroll/BatchSendButton";
 import { ViewingKeyCard } from "@/components/payroll/ViewingKeyCard";
 import { InfoBanner } from "@/components/ui/InfoBanner";
 import { useCloakBatch } from "@/hooks/useCloakBatch";
+import { useLiveTransactionStatus } from "@/hooks/useLiveTransactionStatus";
 import { usePhantom } from "@/components/providers/PhantomProvider";
 import { useToast } from "@/components/providers/ToastProvider";
+import { SOLSCAN_TX_URL } from "@/lib/constants";
+import { formatDate, formatNumber, truncateTxSig } from "@/lib/utils";
+import { Spinner } from "@/components/ui/Spinner";
 import type { PayrollEntry } from "@/types";
 
 const STEPS = ["Upload CSV", "Review & Send", "Confirmation"] as const;
@@ -75,6 +79,25 @@ export default function DashboardPage() {
   const { status, entryStatuses, batchResult, error, run, reset } =
     useCloakBatch(wallet, connection);
 
+  const trackedSignature = useMemo(() => {
+    if (batchResult?.txSignature) return batchResult.txSignature;
+    const latest = [...entryStatuses].reverse().find((s) => Boolean(s.txSignature));
+    return latest?.txSignature ?? null;
+  }, [batchResult, entryStatuses]);
+
+  const {
+    txStatus,
+    isLoading: txLoading,
+    error: txError,
+    lastUpdated,
+    refetch: refetchTxStatus,
+  } = useLiveTransactionStatus({
+    connection,
+    signature: trackedSignature,
+    enabled: Boolean(trackedSignature),
+    pollIntervalMs: 5_000,
+  });
+
   // Toast on batch status changes
   useEffect(() => {
     if (status === "success" && batchResult) {
@@ -110,6 +133,44 @@ export default function DashboardPage() {
     await run(entries);
     setStep(2);
   }, [entries, run]);
+
+  const txBannerType = useMemo<"info" | "success" | "error">(() => {
+    if (!txStatus) return "info";
+    if (txStatus.status === "failed") return "error";
+    if (txStatus.status === "finalized") return "success";
+    return "info";
+  }, [txStatus]);
+
+  const txBannerTitle = useMemo(() => {
+    if (!txStatus) return "Tracking transaction";
+    if (txStatus.status === "failed") return "Transaction failed";
+    if (txStatus.status === "finalized") return "Transaction finalized";
+    if (txStatus.status === "confirmed") return "Transaction confirmed";
+    return "Transaction pending";
+  }, [txStatus]);
+
+  const txBannerDescription = useMemo(() => {
+    if (!trackedSignature) return "Waiting for transaction signature...";
+
+    const lines: string[] = [
+      `Signature: ${truncateTxSig(trackedSignature)}`,
+      txStatus
+        ? `Confirmations: ${txStatus.confirmations} · Slot: ${txStatus.slot} · Fee: ${formatNumber(txStatus.fee / 1_000_000_000, 9)} SOL`
+        : "Fetching latest status from cluster...",
+    ];
+
+    if (txStatus) {
+      lines.push(`Status time: ${formatDate(txStatus.timestamp)}`);
+    }
+    if (lastUpdated) {
+      lines.push(`Last checked: ${formatDate(lastUpdated)}`);
+    }
+    if (txError) {
+      lines.push(`Tracker error: ${txError}`);
+    }
+
+    return lines.join("\n");
+  }, [lastUpdated, trackedSignature, txError, txStatus]);
 
   return (
     <WalletGuard>
@@ -177,6 +238,33 @@ export default function DashboardPage() {
                 disabled={entries.length === 0}
               />
             </div>
+
+            {trackedSignature && (
+              <InfoBanner
+                type={txBannerType}
+                role="status"
+                title={txBannerTitle}
+                description={
+                  <div className="space-y-1">
+                    <p className="whitespace-pre-line">{txBannerDescription}</p>
+                    <div className="flex items-center gap-2 pt-1">
+                      {txLoading && <Spinner size="sm" />}
+                      <button onClick={() => void refetchTxStatus()} className="btn-secondary px-2.5 py-1 text-xs">
+                        Refresh status
+                      </button>
+                      <a
+                        href={SOLSCAN_TX_URL(trackedSignature)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-secondary px-2.5 py-1 text-xs"
+                      >
+                        Open Solscan ↗
+                      </a>
+                    </div>
+                  </div>
+                }
+              />
+            )}
           </motion.div>
         )}
 
