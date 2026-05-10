@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { usePhantom } from "@/components/providers/PhantomProvider";
 import { WalletGuard } from "@/components/ui/WalletGuard";
 import { useContributorPayments } from "@/hooks/useContributorPayments";
@@ -17,14 +18,19 @@ function ContributorContent() {
   return (
     <div className="max-w-2xl mx-auto w-full px-4 py-10">
       {/* Page header */}
-      <div className="mb-8">
+      <motion.div
+        className="mb-8"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
         <p className="step-num uppercase tracking-widest mb-1">Contributor View</p>
         <h1 className="text-3xl font-bold text-white">My Payments</h1>
         <p className="text-slate-400 mt-2">
           Only private payments addressed to your connected wallet are shown
           here — nothing else is ever exposed.
         </p>
-      </div>
+      </motion.div>
 
       {/* Privacy notice */}
       <div

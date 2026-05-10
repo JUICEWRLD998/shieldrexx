@@ -63,21 +63,6 @@ const PLATFORM = [
 export default function LandingPage() {
   return (
     <div className="relative overflow-x-hidden">
-      {/* Background grid */}
-      <div className="absolute inset-0 bg-grid pointer-events-none select-none" aria-hidden="true" />
-
-      {/* Floating orbs */}
-      <div
-        className="orb absolute pointer-events-none"
-        style={{ top: "-200px", left: "15%", width: "800px", height: "800px", borderRadius: "50%", background: "radial-gradient(circle, rgba(109,40,217,0.22) 0%, transparent 65%)" }}
-        aria-hidden="true"
-      />
-      <div
-        className="orb orb-2 absolute pointer-events-none"
-        style={{ bottom: "-100px", right: "5%", width: "550px", height: "550px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 65%)" }}
-        aria-hidden="true"
-      />
-
       {/* ──────────────── HERO ──────────────── */}
       <section className="relative z-10 max-w-5xl mx-auto px-4 pt-28 pb-20 text-center">
         {/* Live badge */}
