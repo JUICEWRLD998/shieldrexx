@@ -5,6 +5,7 @@ import { SolanaProviders } from "@/components/providers/SolanaProviders";
 import { ToastProvider } from "@/components/providers/ToastProvider";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { AppErrorBoundary } from "@/components/ui/AppErrorBoundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col text-zinc-50" suppressHydrationWarning style={{ backgroundColor: "var(--bg-deep)" }}>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only fixed left-4 top-4 z-[100] rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold text-white"
+        >
+          Skip to main content
+        </a>
         {/* Global background — grid + animated orbs on every page */}
         <div className="fixed inset-0 bg-grid pointer-events-none select-none z-0" aria-hidden="true" />
         <div
@@ -48,11 +55,13 @@ export default function RootLayout({
         />
         <SolanaProviders>
           <ToastProvider>
-            <div className="relative z-10 flex flex-col min-h-full">
-              <Header />
-              <main className="flex flex-col flex-1">{children}</main>
-              <Footer />
-            </div>
+            <AppErrorBoundary>
+              <div className="relative z-10 flex flex-col min-h-full">
+                <Header />
+                <main id="main-content" className="flex flex-col flex-1">{children}</main>
+                <Footer />
+              </div>
+            </AppErrorBoundary>
           </ToastProvider>
         </SolanaProviders>
       </body>

@@ -6,6 +6,7 @@ import { useViewingKey } from "@/hooks/useViewingKey";
 import { ViewingKeyImport } from "@/components/audit/ViewingKeyImport";
 import { AuditReportTable } from "@/components/audit/AuditReportTable";
 import { useToast } from "@/components/providers/ToastProvider";
+import { InfoBanner } from "@/components/ui/InfoBanner";
 
 export default function AuditPage() {
   const { batch, status, error, importKey, reset } = useViewingKey();
@@ -43,33 +44,18 @@ export default function AuditPage() {
 
       {/* Info notice */}
       <motion.div
-        className="card rounded-xl p-4 mb-6 flex items-start gap-3"
-        style={{ borderColor: "rgba(124,58,237,0.3)" }}
-        role="note"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.08 }}
+        className="mb-6"
       >
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-          style={{
-            background: "rgba(109,40,217,0.15)",
-            border: "1px solid rgba(124,58,237,0.3)",
-          }}
-          aria-hidden="true"
-        >
-          <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4">
-            <circle cx="12" cy="12" r="10" stroke="#a78bfa" strokeWidth="1.5" />
-            <path d="M12 8v4m0 4h.01" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </div>
-        <div>
-          <p className="text-slate-200 text-sm font-medium mb-0.5">No wallet needed</p>
-          <p className="text-slate-500 text-xs leading-relaxed">
-            The viewing key contains everything needed to decrypt this batch.
-            Share the key — not your wallet — with your accountant or compliance officer.
-          </p>
-        </div>
+        <InfoBanner
+          role="note"
+          type="info"
+          size="md"
+          title="No wallet needed"
+          description="The viewing key contains everything needed to decrypt this batch. Share the key — not your wallet — with your accountant or compliance officer."
+        />
       </motion.div>
 
       {/* ── Animated state transitions ── */}
@@ -103,28 +89,12 @@ export default function AuditPage() {
             className="flex flex-col gap-5"
           >
             {/* Success banner */}
-            <div
-              className="rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
-              style={{
-                background: "rgba(34,197,94,0.06)",
-                border: "1px solid rgba(34,197,94,0.2)",
-              }}
-            >
-              <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 shrink-0" aria-hidden="true">
-                  <path d="M5 13l4 4L19 7" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="text-slate-200 text-sm font-semibold">
-                  Batch decrypted — {batch.recipientCount} recipient{batch.recipientCount !== 1 ? "s" : ""}
-                </span>
-              </div>
-              <button
-                onClick={reset}
-                className="text-slate-500 hover:text-slate-300 text-xs font-semibold transition-colors shrink-0 self-start sm:self-auto"
-              >
-                Import another →
-              </button>
-            </div>
+            <InfoBanner
+              type="success"
+              role="status"
+              title={`Batch decrypted — ${batch.recipientCount} recipient${batch.recipientCount !== 1 ? "s" : ""}`}
+              action={{ label: "Import another →", onClick: reset }}
+            />
 
             <AuditReportTable
               records={batch.records}

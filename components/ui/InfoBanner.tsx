@@ -6,7 +6,7 @@
  * Replaces inline alert divs with a consistent, reusable banner component.
  */
 
-import { STATUS_COLOR, BRAND } from "@/lib/design";
+import { STATUS_COLOR } from "@/lib/design";
 import { ReactNode } from "react";
 import type { ToastType } from "@/types";
 

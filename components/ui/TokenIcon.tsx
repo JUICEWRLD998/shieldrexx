@@ -6,7 +6,7 @@
  * Displays a colored badge with the token symbol.
  */
 
-import { TOKEN_COLOR, getTokenColor, getTokenBackground } from "@/lib/design";
+import { getTokenColor, getTokenBackground } from "@/lib/design";
 import type { Token } from "@/types";
 
 interface TokenIconProps {

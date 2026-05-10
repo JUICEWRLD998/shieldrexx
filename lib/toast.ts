@@ -82,15 +82,19 @@ export async function toastAsync<T>(
 ): Promise<T> {
   const { loading, success, error, successDuration = 4000, errorDuration = 5000 } = config;
 
+  if (loading) {
+    console.info(`[Toast] Loading: ${loading}`);
+  }
+
   try {
     const result = await operation();
     if (success) {
-      console.log(`[Toast] Success: ${success}`);
+      console.log(`[Toast] Success (${successDuration}ms): ${success}`);
     }
     return result;
   } catch (err: unknown) {
     if (error) {
-      console.error(`[Toast] Error: ${error}`, err);
+      console.error(`[Toast] Error (${errorDuration}ms): ${error}`, err);
     }
     throw err;
   }

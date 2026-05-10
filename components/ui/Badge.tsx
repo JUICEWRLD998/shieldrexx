@@ -7,7 +7,7 @@
  * Replaces 8+ inline badge implementations throughout the codebase.
  */
 
-import { BADGE_STYLE, STATUS_COLOR, TOKEN_COLOR, RADIUS } from "@/lib/design";
+import { BADGE_STYLE, STATUS_COLOR, TOKEN_COLOR } from "@/lib/design";
 import type { BadgeVariant } from "@/types";
 import { ReactNode } from "react";
 

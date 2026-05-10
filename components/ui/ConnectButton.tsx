@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { usePhantom } from "@/components/providers/PhantomProvider";
 import { useToast } from "@/components/providers/ToastProvider";
 
@@ -17,19 +17,18 @@ function shorten(pk: string) {
  * suppressHydrationWarning on <body> in layout.tsx.
  */
 export function ConnectButton() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const { connected, publicKey, connect, disconnect } = usePhantom();
   const { toast } = useToast();
-
-  // Track previous connected state to fire toasts on change
-  const [prevConnected, setPrevConnected] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const prevConnectedRef = useRef(false);
 
   useEffect(() => {
     if (!mounted) return;
+    const prevConnected = prevConnectedRef.current;
     if (connected && !prevConnected) {
       toast({
         type: "success",
@@ -39,9 +38,8 @@ export function ConnectButton() {
     } else if (!connected && prevConnected) {
       toast({ type: "info", title: "Wallet disconnected" });
     }
-    setPrevConnected(connected);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connected]);
+    prevConnectedRef.current = connected;
+  }, [connected, mounted, publicKey, toast]);
 
   async function handleConnect() {
     try {

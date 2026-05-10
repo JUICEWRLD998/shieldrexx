@@ -2,39 +2,12 @@
 
 import type { AuditRecord } from "@/types";
 import { SOLSCAN_TX_URL } from "@/lib/constants";
-
-const TOKEN_COLOR: Record<string, string> = {
-  USDC: "#4ade80",
-  USDT: "#34d399",
-  SOL: "#a78bfa",
-};
-
-function truncateWallet(w: string) {
-  return `${w.slice(0, 8)}…${w.slice(-6)}`;
-}
-
-function truncateSig(sig: string) {
-  if (!sig) return "—";
-  return `${sig.slice(0, 8)}…${sig.slice(-6)}`;
-}
-
-function exportCSV(records: AuditRecord[]) {
-  const header = "wallet,amount,token,txSignature";
-  const rows = records.map((r) => {
-    // Wrap wallet in quotes to handle any comma-edge case
-    return `"${r.wallet}",${r.amount},${r.token},"${r.txSignature}"`;
-  });
-  const csv = [header, ...rows].join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `shieldrexx-audit-${Date.now()}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
+import { getTokenColor } from "@/lib/design";
+import { formatDate, formatNumber, truncateTxSig, exportToCSV } from "@/lib/utils";
+import { WalletAddress } from "@/components/ui/WalletAddress";
+import { TokenIcon } from "@/components/ui/TokenIcon";
+import { DataGrid, type Column } from "@/components/ui/DataGrid";
+import { useMemo } from "react";
 
 interface Props {
   records: AuditRecord[];
@@ -48,6 +21,62 @@ export function AuditReportTable({ records, batchTxSignature, timestamp }: Props
     acc[r.token] = (acc[r.token] ?? 0) + r.amount;
     return acc;
   }, {});
+
+  const columns = useMemo<Column<AuditRecord>[]>(() => [
+    {
+      key: "wallet",
+      label: "Wallet",
+      accessor: "wallet",
+      render: (_value, row) => <WalletAddress address={row.wallet} startChars={8} endChars={6} size="sm" />,
+    },
+    {
+      key: "token",
+      label: "Token",
+      accessor: "token",
+      render: (_value, row) => (
+        <span className="inline-flex items-center gap-2">
+          <TokenIcon token={row.token} size="sm" />
+          <span className="text-xs font-semibold" style={{ color: getTokenColor(row.token) }}>
+            {row.token}
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: "amount",
+      label: "Amount",
+      accessor: "amount",
+      align: "right",
+      sortable: true,
+      render: (value) => (
+        <span className="text-slate-200 text-sm font-semibold tabular-nums">
+          {formatNumber(Number(value), 6)}
+        </span>
+      ),
+    },
+    {
+      key: "tx",
+      label: "Tx Signature",
+      accessor: "txSignature",
+      render: (value) => {
+        const sig = String(value ?? "");
+        if (!sig) return <span className="text-slate-600 text-xs">—</span>;
+        return (
+          <a
+            href={SOLSCAN_TX_URL(sig)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-xs transition-colors truncate"
+            style={{ color: "#a78bfa" }}
+            title={sig}
+            aria-label={`View transaction ${sig} on Solscan`}
+          >
+            {truncateTxSig(sig)} ↗
+          </a>
+        );
+      },
+    },
+  ], []);
 
   return (
     <div className="flex flex-col gap-4">
@@ -74,16 +103,16 @@ export function AuditReportTable({ records, batchTxSignature, timestamp }: Props
           <div key={token} className="flex items-center gap-1.5">
             <span
               className="text-xs font-bold"
-              style={{ color: TOKEN_COLOR[token] ?? "#94a3b8" }}
+              style={{ color: getTokenColor(token) }}
             >
-              {total.toLocaleString(undefined, { maximumFractionDigits: 6 })} {token}
+              {formatNumber(total, 6)} {token}
             </span>
             <span className="text-slate-600 text-xs">total</span>
           </div>
         ))}
 
         <span className="text-slate-600 text-xs ml-auto">
-          Decrypted {new Date(timestamp).toLocaleString()}
+          Decrypted {formatDate(timestamp)}
         </span>
       </div>
 
@@ -93,82 +122,12 @@ export function AuditReportTable({ records, batchTxSignature, timestamp }: Props
         role="region"
         aria-label="Decrypted batch recipients"
       >
-        <div className="overflow-x-auto">
-        {/* Table header */}
-        <div
-          className="grid text-left px-4 py-3"
-          style={{
-            gridTemplateColumns: "2fr 1fr 1fr 2fr",
-            minWidth: "480px",
-            background: "rgba(13,18,48,0.6)",
-            borderBottom: "1px solid rgba(124,58,237,0.15)",
-          }}
-        >
-          {["Wallet", "Token", "Amount", "Tx Signature"].map((h) => (
-            <span key={h} className="step-num uppercase tracking-widest">
-              {h}
-            </span>
-          ))}
-        </div>
-
-        {/* Rows */}
-        <div className="divide-y" style={{ "--tw-divide-opacity": 1 } as React.CSSProperties}>
-          {records.map((r, i) => (
-            <div
-              key={i}
-              className="grid px-4 py-3.5 items-center hover:bg-white/2 transition-colors"
-              style={{
-                gridTemplateColumns: "2fr 1fr 1fr 2fr",
-                minWidth: "480px",
-                borderColor: "rgba(124,58,237,0.08)",
-              }}
-            >
-              {/* Wallet */}
-              <span
-                className="font-mono text-xs text-slate-300 select-all"
-                title={r.wallet}
-              >
-                {truncateWallet(r.wallet)}
-              </span>
-
-              {/* Token */}
-              <span
-                className="inline-flex items-center gap-1 text-xs font-semibold"
-                style={{ color: TOKEN_COLOR[r.token] ?? "#94a3b8" }}
-              >
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: TOKEN_COLOR[r.token] ?? "#94a3b8" }}
-                  aria-hidden="true"
-                />
-                {r.token}
-              </span>
-
-              {/* Amount */}
-              <span className="text-slate-200 text-sm font-semibold tabular-nums">
-                {r.amount.toLocaleString(undefined, { maximumFractionDigits: 6 })}
-              </span>
-
-              {/* Tx Signature */}
-              {r.txSignature ? (
-                <a
-                  href={SOLSCAN_TX_URL(r.txSignature)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-mono text-xs transition-colors truncate"
-                  style={{ color: "#a78bfa" }}
-                  title={r.txSignature}
-                  aria-label={`View transaction ${r.txSignature} on Solscan`}
-                >
-                  {truncateSig(r.txSignature)} ↗
-                </a>
-              ) : (
-                <span className="text-slate-600 text-xs">—</span>
-              )}
-            </div>
-          ))}
-        </div>
-        </div>{/* end overflow-x-auto */}
+        <DataGrid
+          data={records.map((r, i) => ({ ...r, id: `${r.wallet}-${r.txSignature}-${i}` }))}
+          columns={columns as Column<(AuditRecord & { id: string })>[]}
+          emptyMessage="No decrypted recipients found."
+          hoverable
+        />
       </div>
 
       {/* Export row */}
@@ -176,12 +135,24 @@ export function AuditReportTable({ records, batchTxSignature, timestamp }: Props
         <p className="text-slate-600 text-xs">
           This report is decrypted locally — no data left your browser.
         </p>
-        <button
-          onClick={() => exportCSV(records)}
-          className="btn-secondary text-xs py-2 px-4 shrink-0"
-        >
-          Export CSV ↓
-        </button>
+        <div className="flex items-center gap-2">
+          {batchTxSignature && (
+            <a
+              href={SOLSCAN_TX_URL(batchTxSignature)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary text-xs py-2 px-4 shrink-0"
+            >
+              View Batch Tx ↗
+            </a>
+          )}
+          <button
+            onClick={() => exportToCSV(records, "shieldrexx-audit")}
+            className="btn-secondary text-xs py-2 px-4 shrink-0"
+          >
+            Export CSV ↓
+          </button>
+        </div>
       </div>
     </div>
   );

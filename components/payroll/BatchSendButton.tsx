@@ -1,27 +1,12 @@
 "use client";
 
+import { useMemo } from "react";
 import type { PerEntryStatus } from "@/lib/cloak";
 import type { PayrollEntry } from "@/types";
-
-const PHASE_LABEL: Record<PerEntryStatus["phase"], string> = {
-  idle:        "Waiting",
-  depositing:  "Depositing…",
-  withdrawing: "Withdrawing…",
-  done:        "Sent",
-  failed:      "Failed",
-};
-
-const PHASE_COLOR: Record<PerEntryStatus["phase"], string> = {
-  idle:        "#4b5563",
-  depositing:  "#fbbf24",
-  withdrawing: "#a78bfa",
-  done:        "#4ade80",
-  failed:      "#f87171",
-};
-
-function truncateWallet(w: string) {
-  return `${w.slice(0, 6)}…${w.slice(-4)}`;
-}
+import { PHASE_CONFIG } from "@/lib/design";
+import { truncateWallet } from "@/lib/utils";
+import { Spinner } from "@/components/ui/Spinner";
+import { StatusIndicator } from "@/components/ui/StatusIndicator";
 
 interface Props {
   entries: PayrollEntry[];
@@ -38,8 +23,14 @@ export function BatchSendButton({
   onSend,
   disabled,
 }: Props) {
-  const statusMap = Object.fromEntries(entryStatuses.map((s) => [s.id, s]));
-  const doneCount = entryStatuses.filter((s) => s.phase === "done").length;
+  const statusMap = useMemo(
+    () => Object.fromEntries(entryStatuses.map((s) => [s.id, s])),
+    [entryStatuses]
+  );
+  const doneCount = useMemo(
+    () => entryStatuses.filter((s) => s.phase === "done").length,
+    [entryStatuses]
+  );
   const total = entries.length;
 
   return (
@@ -72,8 +63,7 @@ export function BatchSendButton({
             {entries.map((entry) => {
               const es = statusMap[entry.id];
               const phase = es?.phase ?? "idle";
-              const color = PHASE_COLOR[phase];
-              const label = PHASE_LABEL[phase];
+              const config = PHASE_CONFIG[phase];
 
               return (
                 <div
@@ -87,18 +77,18 @@ export function BatchSendButton({
                   <span className="text-xs font-semibold text-slate-400">
                     {entry.amount} {entry.token}
                   </span>
-                  <span
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold ml-auto"
-                    style={{ color }}
-                  >
+                  <div className="inline-flex items-center gap-1.5 ml-auto">
                     {(phase === "depositing" || phase === "withdrawing") && (
-                      <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <circle cx="12" cy="12" r="10" stroke="rgba(167,139,250,0.3)" strokeWidth="2" />
-                        <path d="M12 2a10 10 0 0 1 10 10" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" />
-                      </svg>
+                      <Spinner size="sm" />
                     )}
-                    {label}
-                  </span>
+                    <StatusIndicator
+                      status={phase}
+                      showLabel
+                      size="sm"
+                      variant="text"
+                      color={config.color}
+                    />
+                  </div>
                 </div>
               );
             })}
@@ -114,10 +104,7 @@ export function BatchSendButton({
       >
         {isRunning ? (
           <>
-            <svg className="w-4 h-4 animate-spin shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="2" />
-              <path d="M12 2a10 10 0 0 1 10 10" stroke="white" strokeWidth="2" strokeLinecap="round" />
-            </svg>
+            <Spinner size="sm" color="#ffffff" bgColor="rgba(255,255,255,0.3)" />
             Sending {doneCount}/{total}…
           </>
         ) : (

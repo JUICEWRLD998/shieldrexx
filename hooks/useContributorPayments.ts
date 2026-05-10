@@ -2,15 +2,21 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicKey } from "@solana/web3.js";
+import type { ContributorPayment, ScanStatus } from "@/types";
 
-export interface ContributorPayment {
-  amount: number;
-  token: string;
-  txSignature: string;
-  timestamp: number;
+interface CloakKeysResult {
+  viewKey?: unknown;
 }
 
-export type ScanStatus = "idle" | "signing" | "scanning" | "done" | "error";
+interface CloakScanSdk {
+  CLOAK_API_URL?: string;
+  scanNotesForWallet?: (envelopes: string[], viewKey: unknown) => unknown[];
+}
+
+interface CloakKeygenSdk {
+  generateCloakKeys: (seed: Uint8Array) => CloakKeysResult;
+  SIGN_IN_MESSAGE: string;
+}
 
 const POLL_INTERVAL_MS = 10_000;
 
@@ -44,14 +50,15 @@ export function useContributorPayments(
     if (!signMessage) throw new Error("Wallet does not support signMessage.");
     if (viewKeyRef.current) return viewKeyRef.current;
 
-    const { generateCloakKeys, SIGN_IN_MESSAGE } = await import("@cloak.dev/sdk");
+    const { generateCloakKeys, SIGN_IN_MESSAGE } =
+      (await import("@cloak.dev/sdk")) as unknown as CloakKeygenSdk;
     setStatus("signing");
 
-    const msgBytes = new TextEncoder().encode(SIGN_IN_MESSAGE as string);
+    const msgBytes = new TextEncoder().encode(SIGN_IN_MESSAGE);
     const sig = await signMessage(msgBytes);
     // Use first 32 bytes of the wallet signature as deterministic master seed
     const keys = generateCloakKeys(sig.slice(0, 32));
-    viewKeyRef.current = (keys as any).viewKey ?? keys;
+    viewKeyRef.current = keys.viewKey ?? keys;
     return viewKeyRef.current;
   }, [signMessage]);
 
@@ -62,10 +69,9 @@ export function useContributorPayments(
       setStatus("scanning");
 
       // CLOAK_API_URL may not be exported in all SDK versions; fall back to the known relay URL
-      const sdk = await import("@cloak.dev/sdk") as Record<string, unknown>;
-      const CLOAK_API_URL = (sdk["CLOAK_API_URL"] as string | undefined) ?? "https://api.cloak.dev";
-      const { scanNotesForWallet } = sdk as { scanNotesForWallet?: unknown };
-      void scanNotesForWallet; // reserved for future direct scan usage
+      const sdk = (await import("@cloak.dev/sdk")) as unknown as CloakScanSdk;
+      const CLOAK_API_URL = sdk.CLOAK_API_URL ?? "https://api.cloak.dev";
+      const scanNotesForWallet = sdk.scanNotesForWallet;
 
       // Fetch encrypted chain note envelopes from the relay
       const res = await fetch(
@@ -90,13 +96,26 @@ export function useContributorPayments(
 
       // If relay returns raw envelopes, trial-decrypt them
       if (data.envelopes?.length) {
-        const notes = scanNotesForWallet(data.envelopes, viewKey as any);
-        const decoded: ContributorPayment[] = (notes as any[]).map((n: any) => ({
-          amount: Number(n.amount ?? n.value ?? 0) / 1e9,
-          token: n.token ?? "SOL",
-          txSignature: n.txSignature ?? n.signature ?? "",
-          timestamp: n.timestamp ?? Date.now(),
-        }));
+        if (!scanNotesForWallet) {
+          throw new Error("scanNotesForWallet is unavailable in this Cloak SDK version.");
+        }
+        const notes = scanNotesForWallet(data.envelopes, viewKey);
+        const decoded: ContributorPayment[] = notes.map((note) => {
+          const n = note as Record<string, unknown>;
+          const rawAmount = n.amount ?? n.value ?? 0;
+          const amountNumber = typeof rawAmount === "number" ? rawAmount : Number(rawAmount);
+          return {
+            amount: amountNumber / 1e9,
+            token: typeof n.token === "string" ? n.token : "SOL",
+            txSignature:
+              typeof n.txSignature === "string"
+                ? n.txSignature
+                : typeof n.signature === "string"
+                ? n.signature
+                : "",
+            timestamp: typeof n.timestamp === "number" ? n.timestamp : Date.now(),
+          };
+        });
         setPayments(decoded);
       } else if (data.payments) {
         // Relay may return pre-decoded payments directly
@@ -129,26 +148,35 @@ export function useContributorPayments(
   // Initial scan + polling
   useEffect(() => {
     if (!walletPublicKey || !signMessage) {
-      setPayments([]);
-      setStatus("idle");
       viewKeyRef.current = null;
       if (pollerRef.current) clearInterval(pollerRef.current);
       return;
     }
 
-    scan();
-    pollerRef.current = setInterval(scan, POLL_INTERVAL_MS);
+    const kickoffTimer = setTimeout(() => {
+      void scan();
+    }, 0);
+    pollerRef.current = setInterval(() => {
+      void scan();
+    }, POLL_INTERVAL_MS);
 
     return () => {
+      clearTimeout(kickoffTimer);
       if (pollerRef.current) clearInterval(pollerRef.current);
     };
   }, [walletPublicKey, signMessage, scan]);
 
   const refetch = useCallback(() => {
+    if (!walletPublicKey || !signMessage) return;
     if (pollerRef.current) clearInterval(pollerRef.current);
     scan();
     pollerRef.current = setInterval(scan, POLL_INTERVAL_MS);
-  }, [scan]);
+  }, [scan, signMessage, walletPublicKey]);
 
-  return { payments, status, error, refetch };
+  return {
+    payments: walletPublicKey && signMessage ? payments : [],
+    status: walletPublicKey && signMessage ? status : "idle",
+    error,
+    refetch,
+  };
 }

@@ -7,7 +7,7 @@
  */
 
 import { ReactNode } from "react";
-import { BRAND, BACKGROUND, RADIUS } from "@/lib/design";
+import { BRAND, BACKGROUND } from "@/lib/design";
 
 interface EmptyStateProps {
   /** Icon to display */

@@ -74,7 +74,7 @@ export function DataGrid<T extends { id?: string | number }>({
 }: DataGridProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+  const [visibleColumns] = useState<Set<string>>(
     new Set(columns.map((c) => c.key))
   );
 
