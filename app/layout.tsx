@@ -34,7 +34,7 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col text-zinc-50" suppressHydrationWarning style={{ backgroundColor: "var(--bg-deep)" }}>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning style={{ backgroundColor: "var(--bg-deep)" }}>
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only fixed left-4 top-4 z-[100] rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold text-white"
@@ -45,12 +45,12 @@ export default function RootLayout({
         <div className="fixed inset-0 bg-grid pointer-events-none select-none z-0" aria-hidden="true" />
         <div
           className="orb fixed pointer-events-none z-0"
-          style={{ top: "-180px", left: "12%", width: "720px", height: "720px", borderRadius: "50%", background: "radial-gradient(circle, rgba(109,40,217,0.2) 0%, transparent 65%)" }}
+          style={{ top: "-180px", left: "12%", width: "720px", height: "720px", borderRadius: "50%", background: "radial-gradient(circle, var(--orb-one) 0%, transparent 65%)" }}
           aria-hidden="true"
         />
         <div
           className="orb orb-2 fixed pointer-events-none z-0"
-          style={{ bottom: "-80px", right: "5%", width: "500px", height: "500px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.13) 0%, transparent 65%)" }}
+          style={{ bottom: "-80px", right: "5%", width: "500px", height: "500px", borderRadius: "50%", background: "radial-gradient(circle, var(--orb-two) 0%, transparent 65%)" }}
           aria-hidden="true"
         />
         <SolanaProviders>
