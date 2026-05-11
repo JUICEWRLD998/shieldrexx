@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { DataGrid, type Column } from "@/components/ui/DataGrid";
 import { InfoBanner } from "@/components/ui/InfoBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ExecutiveInsights } from "@/components/history/ExecutiveInsights";
 import { StatusIndicator } from "@/components/ui/StatusIndicator";
 import { WalletAddress } from "@/components/ui/WalletAddress";
 import { useToast } from "@/components/providers/ToastProvider";
@@ -204,6 +205,8 @@ export default function HistoryPage() {
         title="Local vault"
         description="History is stored only in this browser localStorage. Deleting a row removes its viewing key from this device only."
       />
+
+      <ExecutiveInsights batches={rows} />
 
       <div className="card rounded-2xl p-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
